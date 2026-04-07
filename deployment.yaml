@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: appointment-container
-        image: yourdockerhub/appointment-v1:latest
+        image: monikaraju/appointment-v1:latest
         ports:
         - containerPort: 5000
 

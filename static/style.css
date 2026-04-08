@@ -4,26 +4,27 @@ body {
 }
 
 .container {
-    width: 500px;
+    width: 350px;
     margin: auto;
-    margin-top: 50px;
+    margin-top: 80px;
     padding: 20px;
     background: white;
     border-radius: 10px;
+    text-align: center;
 }
 
 input, button {
     width: 90%;
-    padding: 8px;
-    margin: 5px;
+    padding: 10px;
+    margin: 8px;
 }
 
 button {
-    background: green;
+    background: #007bff;
     color: white;
     border: none;
 }
 
-table {
-    margin-top: 15px;
+ul {
+    text-align: left;
 }

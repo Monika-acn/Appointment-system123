@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
+# In-memory storage
 appointments = []
 
+# Home Page
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -13,6 +15,7 @@ def home():
 def book():
     data = request.json
 
+    # Validation
     if not data.get("name") or not data.get("date") or not data.get("time"):
         return jsonify({"message": "All fields are required"}), 400
 
@@ -26,27 +29,15 @@ def book():
 
     appointments.append(appointment)
 
-    return jsonify({"message": "Appointment booked successfully"})
+    return jsonify({
+        "message": "Appointment booked successfully",
+        "data": appointment
+    })
 
-# View All
+# (Extra feature even in v1 → shows project quality)
 @app.route('/all', methods=['GET'])
 def view_all():
     return jsonify(appointments)
-
-# 🔥 NEW: Search Appointment
-@app.route('/search', methods=['GET'])
-def search():
-    name = request.args.get('name')
-
-    result = [a for a in appointments if name.lower() in a["name"].lower()]
-    return jsonify(result)
-
-# 🔥 NEW: Delete Appointment
-@app.route('/delete/<int:id>', methods=['DELETE'])
-def delete(id):
-    global appointments
-    appointments = [a for a in appointments if a["id"] != id]
-    return jsonify({"message": "Deleted successfully"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

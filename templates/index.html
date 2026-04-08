@@ -1,111 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Appointment System V2</title>
+    <title>Appointment System</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <div class="container">
-    <h2>Appointment Booking (V2)</h2>
+    <h2>Appointment Booking</h2>
 
     <form id="form">
-        <input type="text" id="name" placeholder="Name" required>
+        <input type="text" id="name" placeholder="Enter Name" required>
         <input type="date" id="date" required>
         <input type="time" id="time" required>
-        <input type="text" id="doctor" placeholder="Doctor">
-        <button type="submit">Book</button>
+        <input type="text" id="doctor" placeholder="Doctor Name">
+
+        <button type="submit">Book Appointment</button>
     </form>
 
     <p id="message"></p>
 
-    <input type="text" id="search" placeholder="Search by name">
-    <button onclick="search()">Search</button>
-
-    <h3>Appointments</h3>
-    <table border="1" width="100%">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Doctor</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="table"></tbody>
-    </table>
+    <h3>Booked Appointments</h3>
+    <ul id="list"></ul>
 </div>
 
 <script>
-document.getElementById("form").addEventListener("submit", async (e) => {
+document.getElementById("form").addEventListener("submit", async function(e) {
     e.preventDefault();
 
     const data = {
-        name: name.value,
-        date: date.value,
-        time: time.value,
-        doctor: doctor.value
+        name: document.getElementById("name").value,
+        date: document.getElementById("date").value,
+        time: document.getElementById("time").value,
+        doctor: document.getElementById("doctor").value
     };
 
     const res = await fetch('/book', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
 
     const result = await res.json();
-    message.innerText = result.message;
+    document.getElementById("message").innerText = result.message;
 
-    load();
+    loadAppointments();
 });
 
-async function load() {
+// Load appointments
+async function loadAppointments() {
     const res = await fetch('/all');
     const data = await res.json();
 
-    const table = document.getElementById("table");
-    table.innerHTML = "";
+    const list = document.getElementById("list");
+    list.innerHTML = "";
 
     data.forEach(a => {
-        table.innerHTML += `
-        <tr>
-            <td>${a.name}</td>
-            <td>${a.date}</td>
-            <td>${a.time}</td>
-            <td>${a.doctor}</td>
-            <td><button onclick="deleteAppt(${a.id})">Delete</button></td>
-        </tr>`;
+        const li = document.createElement("li");
+        li.innerText = `${a.name} - ${a.date} ${a.time} (${a.doctor})`;
+        list.appendChild(li);
     });
 }
 
-async function deleteAppt(id) {
-    await fetch('/delete/' + id, { method: 'DELETE' });
-    load();
-}
-
-async function search() {
-    const name = document.getElementById("search").value;
-
-    const res = await fetch('/search?name=' + name);
-    const data = await res.json();
-
-    const table = document.getElementById("table");
-    table.innerHTML = "";
-
-    data.forEach(a => {
-        table.innerHTML += `
-        <tr>
-            <td>${a.name}</td>
-            <td>${a.date}</td>
-            <td>${a.time}</td>
-            <td>${a.doctor}</td>
-            <td><button onclick="deleteAppt(${a.id})">Delete</button></td>
-        </tr>`;
-    });
-}
-
-load();
+// Initial load
+loadAppointments();
 </script>
 
 </body>

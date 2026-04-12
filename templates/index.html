@@ -1,73 +1,256 @@
-<h1 style="color:red;">VERSION 2 🚀</h1>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Appointment System</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Appointment System V3</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    
+
+<div class="header">
+  <div class="header-inner">
+    <h1>&#128197; Appointment System <span class="badge-v3">V3</span></h1>
+    <p>Book &bull; View &bull; Cancel</p>
+  </div>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-card">
+    <span class="stat-num" id="stat-total">0</span>
+    <span class="stat-label">Total</span>
+  </div>
+  <div class="stat-card confirmed-card">
+    <span class="stat-num" id="stat-confirmed">0</span>
+    <span class="stat-label">Confirmed</span>
+  </div>
+  <div class="stat-card cancelled-card">
+    <span class="stat-num" id="stat-cancelled">0</span>
+    <span class="stat-label">Cancelled</span>
+  </div>
+</div>
 
 <div class="container">
-    <h2>Appointment Booking</h2>
 
-    <form id="form">
-        <input type="text" id="name" placeholder="Enter Name" required>
-        <input type="date" id="date" required>
-        <input type="time" id="time" required>
-        <input type="text" id="doctor" placeholder="Doctor Name">
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('book', this)">&#128203; Book</button>
+    <button class="tab" onclick="showTab('view', this)">&#128065; View</button>
+    <button class="tab" onclick="showTab('cancel', this)">&#10060; Cancel</button>
+  </div>
 
-        <button type="submit">Book Appointment</button>
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ===== TAB: BOOK ===== -->
+  <div id="tab-book" class="tab-panel active">
+    <h2 class="panel-title">Schedule Appointment</h2>
+    <form id="book-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Patient Name *</label>
+          <input type="text" id="name" placeholder="e.g. Arjun Kumar" required />
+        </div>
+        <div class="form-group">
+          <label>Doctor</label>
+          <input type="text" id="doctor" placeholder="e.g. Dr. Priya" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="date" required />
+        </div>
+        <div class="form-group">
+          <label>Time *</label>
+          <input type="time" id="time" required />
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Reason / Notes</label>
+        <textarea id="reason" placeholder="e.g. Regular checkup, Fever..." rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">&#10003; Confirm Booking</button>
     </form>
+  </div>
 
-    <p id="message"></p>
+  <!-- ===== TAB: VIEW ===== -->
+  <div id="tab-view" class="tab-panel">
+    <h2 class="panel-title">All Appointments</h2>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="&#128269; Search by patient name..." oninput="searchAppointments()" />
+      <button class="btn btn-outline" onclick="loadAll()">Show All</button>
+    </div>
+    <div id="view-content">
+      <p class="empty-msg">Click the View tab to load appointments.</p>
+    </div>
+  </div>
 
-    <h3>Booked Appointments</h3>
-    <ul id="list"></ul>
+  <!-- ===== TAB: CANCEL ===== -->
+  <div id="tab-cancel" class="tab-panel">
+    <h2 class="panel-title">Cancel Appointment</h2>
+    <p class="sub-text">Enter the Appointment ID to cancel it. The record stays in history marked as "Cancelled".</p>
+    <div class="cancel-box">
+      <input type="number" id="cancel-id" placeholder="Enter Appointment ID" min="1" />
+      <button class="btn btn-danger" onclick="cancelAppointment()">&#10060; Cancel Appointment</button>
+    </div>
+    <div class="divider"></div>
+    <h3 class="sub-heading">Or cancel directly from the list:</h3>
+    <div id="cancel-content">
+      <p class="empty-msg">Loading appointments...</p>
+    </div>
+  </div>
+
 </div>
 
 <script>
-document.getElementById("form").addEventListener("submit", async function(e) {
+  // ─── Tab switching ───────────────────────────────────────
+  function showTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'view') loadAll();
+    if (name === 'cancel') loadCancelList();
+    loadStats();
+  }
+
+  // ─── Toast ───────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 3000);
+  }
+
+  // ─── Stats ───────────────────────────────────────────────
+  async function loadStats() {
+    const res = await fetch('/stats');
+    const data = await res.json();
+    document.getElementById('stat-total').textContent = data.total;
+    document.getElementById('stat-confirmed').textContent = data.confirmed;
+    document.getElementById('stat-cancelled').textContent = data.cancelled;
+  }
+
+  // ─── BOOK ────────────────────────────────────────────────
+  document.getElementById('book-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    const data = {
-        name: document.getElementById("name").value,
-        date: document.getElementById("date").value,
-        time: document.getElementById("time").value,
-        doctor: document.getElementById("doctor").value
+    const payload = {
+      name: document.getElementById('name').value.trim(),
+      date: document.getElementById('date').value,
+      time: document.getElementById('time').value,
+      doctor: document.getElementById('doctor').value.trim(),
+      reason: document.getElementById('reason').value.trim()
     };
-
     const res = await fetch('/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-
     const result = await res.json();
-    document.getElementById("message").innerText = result.message;
+    if (result.success) {
+      showToast(result.message, 'success');
+      document.getElementById('book-form').reset();
+      loadStats();
+    } else {
+      showToast(result.message, 'error');
+    }
+  });
 
-    loadAppointments();
-});
-
-// Load appointments
-async function loadAppointments() {
+  // ─── VIEW ────────────────────────────────────────────────
+  async function loadAll() {
     const res = await fetch('/all');
     const data = await res.json();
+    renderTable(data, 'view-content', true);
+    loadStats();
+  }
 
-    const list = document.getElementById("list");
-    list.innerHTML = "";
+  async function searchAppointments() {
+    const name = document.getElementById('search-input').value.trim();
+    if (!name) { loadAll(); return; }
+    const res = await fetch('/search?name=' + encodeURIComponent(name));
+    const data = await res.json();
+    renderTable(data, 'view-content', true);
+  }
 
+  function renderTable(data, containerId, showDelete) {
+    const container = document.getElementById(containerId);
+    if (!data.length) {
+      container.innerHTML = '<p class="empty-msg">No appointments found.</p>';
+      return;
+    }
+    let html = `<div class="table-wrap"><table>
+      <thead><tr>
+        <th>ID</th><th>Name</th><th>Date</th><th>Time</th><th>Doctor</th><th>Reason</th><th>Status</th>
+        ${showDelete ? '<th>Action</th>' : ''}
+      </tr></thead><tbody>`;
     data.forEach(a => {
-        const li = document.createElement("li");
-        li.innerText = `${a.name} - ${a.date} ${a.time} (${a.doctor})`;
-        list.appendChild(li);
+      const statusClass = a.status === 'Confirmed' ? 'status-confirmed' : 'status-cancelled';
+      html += `<tr class="${a.status === 'Cancelled' ? 'row-cancelled' : ''}">
+        <td>${a.id}</td>
+        <td>${a.name}</td>
+        <td>${a.date}</td>
+        <td>${a.time}</td>
+        <td>${a.doctor}</td>
+        <td>${a.reason || '-'}</td>
+        <td><span class="status-badge ${statusClass}">${a.status}</span></td>
+        ${showDelete ? `<td><button class="btn-sm btn-del" onclick="deleteAppt(${a.id})">Delete</button></td>` : ''}
+      </tr>`;
     });
-}
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  }
 
-// Initial load
-loadAppointments();
+  async function deleteAppt(id) {
+    if (!confirm('Permanently delete appointment #' + id + '?')) return;
+    const res = await fetch('/delete/' + id, { method: 'DELETE' });
+    const result = await res.json();
+    showToast(result.message, result.success ? 'success' : 'error');
+    loadAll();
+  }
+
+  // ─── CANCEL ──────────────────────────────────────────────
+  async function loadCancelList() {
+    const res = await fetch('/all');
+    const data = await res.json();
+    const container = document.getElementById('cancel-content');
+    const active = data.filter(a => a.status === 'Confirmed');
+    if (!active.length) {
+      container.innerHTML = '<p class="empty-msg">No confirmed appointments to cancel.</p>';
+      return;
+    }
+    let html = '<div class="cancel-list">';
+    active.forEach(a => {
+      html += `<div class="cancel-card">
+        <div class="cancel-card-info">
+          <strong>#${a.id} — ${a.name}</strong>
+          <span>${a.date} at ${a.time} &bull; ${a.doctor}</span>
+        </div>
+        <button class="btn btn-danger btn-sm-cancel" onclick="cancelById(${a.id})">Cancel</button>
+      </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  async function cancelAppointment() {
+    const id = parseInt(document.getElementById('cancel-id').value);
+    if (!id) { showToast('Please enter a valid Appointment ID.', 'error'); return; }
+    await cancelById(id);
+    document.getElementById('cancel-id').value = '';
+  }
+
+  async function cancelById(id) {
+    const res = await fetch('/cancel/' + id, { method: 'PUT' });
+    const result = await res.json();
+    showToast(result.message, result.success ? 'success' : 'error');
+    loadCancelList();
+    loadStats();
+  }
+
+  // ─── Init ─────────────────────────────────────────────────
+  loadStats();
 </script>
-
 </body>
 </html>
